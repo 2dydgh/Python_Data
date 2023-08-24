@@ -1,0 +1,69 @@
+1.import requests
+from fake_useragent import UserAgent
+
+ua = UserAgent()
+headers= {
+    "user-Agent": ua.random
+}
+res=requests.get("https://news.naver.com/main/main.naver?mode=LSD&mid=shm&sid1=100",
+                headers=headers)
+print(res.text)
+
+# 네트워크 탭 User-agent가 없는 경우에는
+# 크롤링을 사용할 시 프로그램이라 판단하여, 크롤링이 불가능한 경우가 존재
+
+2.from bs4 import BeautifulSoup
+bs = BeautifulSoup(res.text, 'html.parser')
+area = bs.select_one('#_rankingList0')
+elem = area.select('a.list_tit')
+for e in elem:
+    print(e.text)
+    print(e.attrs.get("href"))
+
+3.# 헤드라인 뉴스 수집
+
+res = requests.get("https://search.naver.com/search.naver?where=view&\
+sm=tab_jum&query=%ED%8C%8C%EC%9D%B4%EC%8D%AC")
+bs = BeautifulSoup(res.text, 'html.parser')
+
+area = bs.select_one(".lst_total")
+lis = area.select("._svp_item")
+print(len(lis))
+for li in lis:
+    title = li.select_one(".total_tit")
+    title = title.text
+    print(title)
+    
+    summary = li.select_one(".dsc_txt")
+    summary = summary.text
+    print(summary)
+    
+    date = li.select_one(".date")
+    if not date:
+        date = li.select_one(".sub_time")
+    date = date.text
+    print(date)
+
+4.# Top종목, 현재가 변동, % 추출하기
+res = requests.get("https://finance.naver.com/")
+bs = BeautifulSoup(res.text, 'html.parser')
+
+area = bs.select_one("#_topItems1")
+tds = area.select("tr")
+data = []
+for td in tds:
+    # 종목명
+    name = td.select_one("th").text
+    
+    # 현재가 변동
+    diff = td.select("td")
+    diff_range = diff[0].text.strip()
+    # 변동폭
+    bandage = diff[1].text.strip()
+    # %
+    percent = diff[2].text.strip()
+    
+#     print(diff_range)
+#     print(bandage)
+#     print(percent)
+    data.append((name, diff_range, bandage, percent))
